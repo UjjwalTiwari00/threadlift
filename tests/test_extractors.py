@@ -24,10 +24,7 @@ CASES = [
 ]
 
 
-@pytest.mark.parametrize(
-    "filename,extractor,url", CASES, ids=[c[1].platform for c in CASES]
-)
-async def test_extractor_parses_fixture(filename, extractor, url):
+async def parse_fixture(filename, extractor, url):
     fixture = FIXTURES / filename
     if not fixture.exists():
         pytest.skip(f"fixture {filename} not captured yet")
@@ -39,11 +36,30 @@ async def test_extractor_parses_fixture(filename, extractor, url):
             await page.set_content(
                 fixture.read_text(encoding="utf-8"), wait_until="domcontentloaded"
             )
-            conversation = await extractor.parse(page, url)
+            return await extractor.parse(page, url)
         finally:
             await browser.close()
+
+
+@pytest.mark.parametrize(
+    "filename,extractor,url", CASES, ids=[c[1].platform for c in CASES]
+)
+async def test_extractor_parses_fixture(filename, extractor, url):
+    conversation = await parse_fixture(filename, extractor, url)
 
     assert conversation.platform == extractor.platform
     assert conversation.messages, "extractor returned no messages"
     assert any(m.role == "user" for m in conversation.messages)
     assert any(m.role == "assistant" for m in conversation.messages)
+
+
+async def test_gemini_fixture_content_is_clean():
+    conversation = await parse_fixture(
+        "gemini.html", GeminiExtractor(), "https://gemini.google.com/share/fixture"
+    )
+
+    assert conversation.title == "Greeting and Offer of Assistance"
+    user_messages = [m for m in conversation.messages if m.role == "user"]
+    assert user_messages[0].content == "hi"
+    # the visually-hidden screen-reader label must not leak into content
+    assert all("You said" not in m.content for m in user_messages)

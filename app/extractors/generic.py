@@ -15,7 +15,7 @@ CANDIDATE_PAIRS = [
     (".message.user", ".message.assistant"),
     ('[data-message-author-role="user"]', '[data-message-author-role="assistant"]'),
     ('[data-testid="user-message"]', ".font-claude-message"),
-    ("user-query", "model-response"),
+    ("user-query", "response-container, model-response"),
 ]
 
 PER_PATTERN_TIMEOUT_MS = 3_000

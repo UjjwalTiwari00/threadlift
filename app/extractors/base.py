@@ -10,6 +10,7 @@ loaded with page.set_content() and parsed directly, without the network.
 Tests use the same path.
 """
 
+import asyncio
 from abc import ABC, abstractmethod
 
 from playwright.async_api import Locator, Page
@@ -17,6 +18,9 @@ from playwright.async_api import Locator, Page
 from app.models import CodeBlock, Conversation, Message, Role
 
 WAIT_FOR_MESSAGES_MS = 15_000
+SETTLE_INTERVAL_MS = 400
+SETTLE_STABLE_CHECKS = 2
+SETTLE_MAX_WAIT_MS = 8_000
 
 
 class ExtractionError(Exception):
@@ -50,8 +54,21 @@ class BaseExtractor(ABC):
                 return content.strip()
         return (await page.title()).strip()
 
-    async def _message_from_element(self, element: Locator, role: Role) -> Message:
-        content = (await element.inner_text()).strip()
+    async def _message_from_element(
+        self,
+        element: Locator,
+        role: Role,
+        content_selector: str | None = None,
+    ) -> Message:
+        # content_selector narrows to the actual message text when the turn
+        # element also contains UI chrome (labels like "You said", buttons).
+        content = ""
+        if content_selector:
+            inner = element.locator(content_selector)
+            texts = [(await node.inner_text()).strip() for node in await inner.all()]
+            content = "\n\n".join(t for t in texts if t)
+        if not content:
+            content = (await element.inner_text()).strip()
         code_blocks: list[CodeBlock] = []
         for pre in await element.locator("pre").all():
             code = pre.locator("code").first
@@ -75,6 +92,8 @@ class BaseExtractor(ABC):
         user_selector: str,
         assistant_selector: str,
         timeout_ms: int = WAIT_FOR_MESSAGES_MS,
+        user_content_selector: str | None = None,
+        assistant_content_selector: str | None = None,
     ) -> list[Message]:
         """Collect messages, in document order, from two role-specific selectors."""
         combined = f"{user_selector}, {assistant_selector}"
@@ -85,7 +104,11 @@ class BaseExtractor(ABC):
                 "(el, sel) => el.matches(sel)", user_selector
             )
             role: Role = "user" if is_user else "assistant"
-            message = await self._message_from_element(element, role)
+            message = await self._message_from_element(
+                element,
+                role,
+                user_content_selector if is_user else assistant_content_selector,
+            )
             if message.content:
                 messages.append(message)
         return messages

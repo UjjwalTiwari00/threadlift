@@ -13,6 +13,7 @@ def test_claude_urls():
 def test_gemini_urls():
     assert get_extractor("https://gemini.google.com/share/abc").platform == "gemini"
     assert get_extractor("https://g.co/gemini/share/abc").platform == "gemini"
+    assert get_extractor("https://share.gemini.google/wZ9k95hbkGQT").platform == "gemini"
 
 
 def test_unknown_urls_fall_back_to_generic():
