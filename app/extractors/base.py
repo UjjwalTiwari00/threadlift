@@ -11,13 +11,19 @@ Tests use the same path.
 """
 
 import asyncio
+import logging
+import os
 from abc import ABC, abstractmethod
 
 from playwright.async_api import Locator, Page
 
 from app.models import CodeBlock, Conversation, Message, Role
 
-WAIT_FOR_MESSAGES_MS = 15_000
+# Overridable per deployment: slow instances (Render free tier, 0.1 CPU)
+# can need far longer than a dev laptop to render an SPA.
+WAIT_FOR_MESSAGES_MS = int(os.environ.get("EXTRACT_WAIT_MS", "15000"))
+
+logger = logging.getLogger("threadlift.extractor")
 SETTLE_INTERVAL_MS = 400
 SETTLE_STABLE_CHECKS = 2
 SETTLE_MAX_WAIT_MS = 8_000
@@ -45,6 +51,21 @@ class BaseExtractor(ABC):
 
     async def _goto(self, page: Page, url: str) -> None:
         await page.goto(url, wait_until="domcontentloaded")
+
+    async def _log_failure(self, page: Page, url: str) -> None:
+        """Snapshot what the page actually showed; invaluable for prod-only bugs."""
+        try:
+            title = await page.title()
+            body = (await page.locator("body").inner_text())[:300]
+        except Exception:
+            title, body = "<unavailable>", "<unavailable>"
+        logger.warning(
+            "extraction failed: platform=%s url=%s page_title=%r body_snippet=%r",
+            self.platform,
+            url,
+            title,
+            body,
+        )
 
     async def _title(self, page: Page) -> str:
         og = page.locator('meta[property="og:title"]')
