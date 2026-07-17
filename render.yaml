@@ -1,0 +1,7 @@
+services:
+  - type: web
+    name: threadlift
+    runtime: docker
+    plan: free # NOTE: 512MB RAM is tight for Chromium; upgrade to starter if you see OOM restarts
+    healthCheckPath: /health
+    autoDeploy: true

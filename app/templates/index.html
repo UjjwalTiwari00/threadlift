@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ThreadLift</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<main class="container">
+  <h1>ThreadLift</h1>
+  <p class="tagline">
+    Lift your conversations out of any platform — paste a ChatGPT, Claude,
+    or Gemini share link and get clean, normalized JSON.
+  </p>
+
+  <form id="extract-form">
+    <input type="url" id="url" placeholder="https://chatgpt.com/share/..."
+           required autocomplete="off">
+    <button type="submit" id="submit-btn">Extract</button>
+  </form>
+
+  <p class="upload-hint">
+    Link blocked by bot protection (common with Claude)? Open it in your
+    browser, save the page (<kbd>Ctrl+S</kbd> → "Webpage, Complete" or copy
+    the DOM from DevTools), then
+    <label class="upload-label" for="file">upload the HTML file</label>.
+    <input type="file" id="file" accept=".html,.htm,text/html" hidden>
+  </p>
+
+  <p id="status" hidden></p>
+
+  <section id="result" hidden>
+    <div class="result-header">
+      <h2 id="convo-title"></h2>
+      <div class="result-actions">
+        <button type="button" id="toggle-json">View JSON</button>
+        <button type="button" id="download-json">Download JSON</button>
+      </div>
+    </div>
+    <p class="meta" id="convo-meta"></p>
+    <div id="messages"></div>
+    <pre id="json-view" hidden></pre>
+  </section>
+</main>
+
+<script>
+  const form = document.getElementById("extract-form");
+  const urlInput = document.getElementById("url");
+  const submitBtn = document.getElementById("submit-btn");
+  const statusEl = document.getElementById("status");
+  const resultEl = document.getElementById("result");
+  const titleEl = document.getElementById("convo-title");
+  const metaEl = document.getElementById("convo-meta");
+  const messagesEl = document.getElementById("messages");
+  const jsonView = document.getElementById("json-view");
+  const toggleJsonBtn = document.getElementById("toggle-json");
+  const downloadBtn = document.getElementById("download-json");
+
+  let conversation = null;
+
+  function setStatus(text, isError) {
+    statusEl.hidden = !text;
+    statusEl.textContent = text || "";
+    statusEl.className = isError ? "error" : "";
+  }
+
+  async function runExtraction(request) {
+    resultEl.hidden = true;
+    submitBtn.disabled = true;
+    setStatus("Extracting… this can take up to 30 seconds.", false);
+    try {
+      const res = await fetch(request.path, request.options);
+      const data = await res.json();
+      if (!res.ok) {
+        const detail = typeof data.detail === "string"
+          ? data.detail
+          : "Extraction failed.";
+        throw new Error(detail);
+      }
+      conversation = data;
+      render(data);
+      setStatus("", false);
+    } catch (err) {
+      setStatus(err.message, true);
+    } finally {
+      submitBtn.disabled = false;
+    }
+  }
+
+  form.addEventListener("submit", (event) => {
+    event.preventDefault();
+    runExtraction({
+      path: "/extract",
+      options: {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: urlInput.value }),
+      },
+    });
+  });
+
+  document.getElementById("file").addEventListener("change", (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+    const formData = new FormData();
+    formData.append("file", file);
+    runExtraction({
+      path: "/extract-html",
+      options: { method: "POST", body: formData },
+    });
+    event.target.value = "";
+  });
+
+  function render(convo) {
+    titleEl.textContent = convo.title || "(untitled conversation)";
+    metaEl.textContent =
+      convo.platform + " · " + convo.messages.length + " messages";
+    messagesEl.textContent = "";
+    for (const msg of convo.messages) {
+      const div = document.createElement("div");
+      div.className = "message " + msg.role;
+
+      const badge = document.createElement("span");
+      badge.className = "role-badge";
+      badge.textContent = msg.role;
+      div.appendChild(badge);
+
+      const body = document.createElement("p");
+      body.className = "content";
+      body.textContent = msg.content;
+      div.appendChild(body);
+
+      for (const block of msg.code_blocks) {
+        const label = document.createElement("div");
+        label.className = "code-lang";
+        label.textContent = block.language || "code";
+        div.appendChild(label);
+
+        const pre = document.createElement("pre");
+        pre.textContent = block.content;
+        div.appendChild(pre);
+      }
+      messagesEl.appendChild(div);
+    }
+    jsonView.textContent = JSON.stringify(convo, null, 2);
+    jsonView.hidden = true;
+    messagesEl.hidden = false;
+    toggleJsonBtn.textContent = "View JSON";
+    resultEl.hidden = false;
+  }
+
+  toggleJsonBtn.addEventListener("click", () => {
+    const showingJson = !jsonView.hidden;
+    jsonView.hidden = showingJson;
+    messagesEl.hidden = !showingJson;
+    toggleJsonBtn.textContent = showingJson ? "View JSON" : "View messages";
+  });
+
+  downloadBtn.addEventListener("click", () => {
+    if (!conversation) return;
+    const blob = new Blob([JSON.stringify(conversation, null, 2)], {
+      type: "application/json",
+    });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = (conversation.title || "conversation")
+      .replace(/[^a-z0-9]+/gi, "-").toLowerCase() + ".json";
+    a.click();
+    URL.revokeObjectURL(a.href);
+  });
+</script>
+</body>
+</html>
