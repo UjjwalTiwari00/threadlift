@@ -60,11 +60,13 @@ class GeminiExtractor(BaseExtractor):
                 assistant_content_selector=ASSISTANT_CONTENT_SELECTOR,
             )
         except PlaywrightTimeout:
+            await self._log_failure(page, url)
             raise ExtractionError(
                 "No messages found on the Gemini share page. The link may be "
                 "expired or private, or the page structure may have changed."
             )
         if not messages:
+            await self._log_failure(page, url)
             raise ExtractionError("The Gemini share page contained no message text.")
         return Conversation(
             platform=self.platform,

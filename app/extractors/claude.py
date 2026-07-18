@@ -31,6 +31,7 @@ class ClaudeExtractor(BaseExtractor):
                 page, USER_SELECTOR, ASSISTANT_SELECTOR
             )
         except PlaywrightTimeout:
+            await self._log_failure(page, url)
             title = await page.title()
             if "just a moment" in title.lower():
                 raise ExtractionError(
@@ -45,6 +46,7 @@ class ClaudeExtractor(BaseExtractor):
                 "and use the upload option."
             )
         if not messages:
+            await self._log_failure(page, url)
             raise ExtractionError("The Claude share page contained no message text.")
         return Conversation(
             platform=self.platform,

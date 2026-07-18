@@ -28,6 +28,7 @@ class ChatGPTExtractor(BaseExtractor):
         try:
             await page.wait_for_selector(MESSAGE_SELECTOR, timeout=WAIT_FOR_MESSAGES_MS)
         except PlaywrightTimeout:
+            await self._log_failure(page, url)
             raise ExtractionError(
                 "No messages found on the ChatGPT share page. The link may be "
                 "expired, private, or the page structure may have changed."
@@ -40,6 +41,7 @@ class ChatGPTExtractor(BaseExtractor):
             if message.content:
                 messages.append(message)
         if not messages:
+            await self._log_failure(page, url)
             raise ExtractionError("The ChatGPT share page contained no message text.")
         return Conversation(
             platform=self.platform,

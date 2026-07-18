@@ -56,6 +56,7 @@ class GenericExtractor(BaseExtractor):
             container = page.locator("body")
         text = (await container.first.inner_text()).strip()
         if not text:
+            await self._log_failure(page, url)
             raise ExtractionError(
                 "Could not find any conversation content on this page."
             )
