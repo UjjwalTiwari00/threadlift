@@ -3,6 +3,7 @@
 from app.extractors.base import BaseExtractor
 from app.extractors.chatgpt import ChatGPTExtractor
 from app.extractors.claude import ClaudeExtractor
+from app.extractors.deepseek import DeepSeekExtractor
 from app.extractors.gemini import GeminiExtractor
 from app.extractors.generic import GenericExtractor
 from app.extractors.kimi import KimiExtractor
@@ -12,6 +13,7 @@ EXTRACTORS: list[BaseExtractor] = [
     ClaudeExtractor(),
     GeminiExtractor(),
     KimiExtractor(),
+    DeepSeekExtractor(),
 ]
 
 _GENERIC = GenericExtractor()

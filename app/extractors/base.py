@@ -13,6 +13,7 @@ Tests use the same path.
 import asyncio
 import logging
 import os
+import re
 from abc import ABC, abstractmethod
 
 from playwright.async_api import Locator, Page
@@ -31,6 +32,18 @@ SETTLE_MAX_WAIT_MS = 8_000
 
 class ExtractionError(Exception):
     """Raised when a page loads but no conversation can be found on it."""
+
+
+_FENCE_RE = re.compile(r"```([\w#+.-]*)[ \t]*\n(.*?)```", re.DOTALL)
+
+
+def code_blocks_from_markdown(text: str) -> list[CodeBlock]:
+    """Extract fenced code blocks from markdown message text."""
+    return [
+        CodeBlock(language=language, content=body.strip())
+        for language, body in _FENCE_RE.findall(text)
+        if body.strip()
+    ]
 
 
 class BaseExtractor(ABC):

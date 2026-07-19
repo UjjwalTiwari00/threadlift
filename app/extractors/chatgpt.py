@@ -20,8 +20,13 @@ from typing import Any
 
 from playwright.async_api import Page, TimeoutError as PlaywrightTimeout
 
-from app.extractors.base import WAIT_FOR_MESSAGES_MS, BaseExtractor, ExtractionError
-from app.models import CodeBlock, Conversation, Message, Role
+from app.extractors.base import (
+    WAIT_FOR_MESSAGES_MS,
+    BaseExtractor,
+    ExtractionError,
+    code_blocks_from_markdown,
+)
+from app.models import Conversation, Message, Role
 
 logger = logging.getLogger("threadlift.extractor")
 
@@ -29,7 +34,6 @@ MESSAGE_SELECTOR = "[data-message-author-role]"
 VALID_ROLES = ("user", "assistant", "system")
 
 _ENQUEUE_RE = re.compile(r'streamController\.enqueue\("((?:[^"\\]|\\.)*)"\)')
-_FENCE_RE = re.compile(r"```([\w#+.-]*)[ \t]*\n(.*?)```", re.DOTALL)
 
 # turbo-stream can encode reference cycles; a depth cap keeps the decoder
 # total. Real conversation payloads are nowhere near this deep.
@@ -87,14 +91,6 @@ def _decode_stream_payload(html: str) -> Any:
         if isinstance(values, list) and values:
             return _decode_ref(values, 0)
     return None
-
-
-def _code_blocks_from_markdown(text: str) -> list[CodeBlock]:
-    return [
-        CodeBlock(language=language, content=body.strip())
-        for language, body in _FENCE_RE.findall(text)
-        if body.strip()
-    ]
 
 
 class ChatGPTExtractor(BaseExtractor):
@@ -189,7 +185,7 @@ class ChatGPTExtractor(BaseExtractor):
                 Message(
                     role=role,
                     content=content,
-                    code_blocks=_code_blocks_from_markdown(content),
+                    code_blocks=code_blocks_from_markdown(content),
                 )
             )
         if not messages:

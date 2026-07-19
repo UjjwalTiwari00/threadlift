@@ -34,6 +34,9 @@ class BrowserManager:
                 "--no-sandbox",
                 # /dev/shm is tiny in containers; use /tmp instead.
                 "--disable-dev-shm-usage",
+                # Hides navigator.webdriver. DeepSeek's "Human Verification"
+                # challenge auto-passes with this and hard-fails without it.
+                "--disable-blink-features=AutomationControlled",
             ],
         )
 

@@ -22,6 +22,13 @@ def test_kimi_urls():
     assert get_extractor("https://kimi.moonshot.cn/share/abc").platform == "kimi"
 
 
+def test_deepseek_urls():
+    assert (
+        get_extractor("https://chat.deepseek.com/share/ofrek2m6").platform
+        == "deepseek"
+    )
+
+
 def test_unknown_urls_fall_back_to_generic():
     assert get_extractor("https://example.com/some-chat").platform == "generic"
 
