@@ -148,8 +148,8 @@
         <span class="platforms-label">WORKS WITH</span>
         <span class="chip">ChatGPT</span>
         <span class="chip">Gemini</span>
-        <span class="chip">Kimi</span>
         <span class="chip">DeepSeek</span>
+         <span class="chip">More Ai will be added</span>
       </div>
     </div>
 
@@ -234,6 +234,10 @@
 
   async function runExtraction(request) {
     resultEl.hidden = true;
+    messagesEl.innerHTML = "";
+    jsonContent.textContent = "";
+    titleEl.textContent = "";
+    metaEl.textContent = "";
     showError("");
     showLoading(true);
     try {
