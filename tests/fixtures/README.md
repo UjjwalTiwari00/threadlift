@@ -19,4 +19,9 @@ offline and tell you exactly which extractor broke after a platform redesign.
 
 Tests for missing fixtures are skipped, not failed.
 
+Exception — `chatgpt.html` should be the **raw page source** (view-source /
+`curl`), not the rendered DOM: ChatGPT embeds the conversation as JSON in
+the initial HTML and the extractor parses that directly. The rendered-DOM
+selector path is only a fallback there.
+
 Tip: use a throwaway conversation for fixtures — these files get committed.

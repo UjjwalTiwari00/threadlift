@@ -53,6 +53,22 @@ async def test_extractor_parses_fixture(filename, extractor, url):
     assert any(m.role == "assistant" for m in conversation.messages)
 
 
+async def test_chatgpt_fixture_embedded_payload():
+    # chatgpt.html is raw page source (not rendered DOM): it exercises the
+    # embedded turbo-stream path, which is what production relies on.
+    conversation = await parse_fixture(
+        "chatgpt.html", ChatGPTExtractor(), "https://chatgpt.com/share/fixture"
+    )
+
+    assert conversation.title == "Inner Join Syntax"
+    user_messages = [m for m in conversation.messages if m.role == "user"]
+    assert user_messages[0].content == "innner join of two table syntax"
+    assistant_messages = [m for m in conversation.messages if m.role == "assistant"]
+    assert assistant_messages[0].code_blocks
+    assert assistant_messages[0].code_blocks[0].language == "sql"
+    assert "INNER JOIN" in assistant_messages[0].code_blocks[0].content
+
+
 async def test_gemini_fixture_content_is_clean():
     conversation = await parse_fixture(
         "gemini.html", GeminiExtractor(), "https://gemini.google.com/share/fixture"
