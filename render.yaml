@@ -5,3 +5,9 @@ services:
     plan: free # NOTE: 512MB RAM is tight for Chromium; upgrade to starter if you see OOM restarts
     healthCheckPath: /health
     autoDeploy: true
+    envVars:
+      # Gemini share pages fetch the conversation client-side and take ~14s
+      # to render even on a dev laptop; on 0.1 CPU the default 15s wait
+      # always expires. 60s stays under Render's ~100s proxy timeout.
+      - key: EXTRACT_WAIT_MS
+        value: "60000"
