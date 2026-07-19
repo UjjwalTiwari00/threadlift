@@ -5,11 +5,13 @@ from app.extractors.chatgpt import ChatGPTExtractor
 from app.extractors.claude import ClaudeExtractor
 from app.extractors.gemini import GeminiExtractor
 from app.extractors.generic import GenericExtractor
+from app.extractors.kimi import KimiExtractor
 
 EXTRACTORS: list[BaseExtractor] = [
     ChatGPTExtractor(),
     ClaudeExtractor(),
     GeminiExtractor(),
+    KimiExtractor(),
 ]
 
 _GENERIC = GenericExtractor()

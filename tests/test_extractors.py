@@ -14,6 +14,7 @@ from playwright.async_api import async_playwright
 from app.extractors.chatgpt import ChatGPTExtractor
 from app.extractors.claude import ClaudeExtractor
 from app.extractors.gemini import GeminiExtractor
+from app.extractors.kimi import KimiExtractor
 
 FIXTURES = Path(__file__).parent / "fixtures"
 
@@ -21,6 +22,7 @@ CASES = [
     ("chatgpt.html", ChatGPTExtractor(), "https://chatgpt.com/share/fixture"),
     ("claude.html", ClaudeExtractor(), "https://claude.ai/share/fixture"),
     ("gemini.html", GeminiExtractor(), "https://gemini.google.com/share/fixture"),
+    ("kimi.html", KimiExtractor(), "https://www.kimi.com/share/fixture"),
 ]
 
 
@@ -67,6 +69,19 @@ async def test_chatgpt_fixture_embedded_payload():
     assert assistant_messages[0].code_blocks
     assert assistant_messages[0].code_blocks[0].language == "sql"
     assert "INNER JOIN" in assistant_messages[0].code_blocks[0].content
+
+
+async def test_kimi_fixture_content_is_clean():
+    conversation = await parse_fixture(
+        "kimi.html", KimiExtractor(), "https://www.kimi.com/share/fixture"
+    )
+
+    assert conversation.title == "Hacking Discount Attempt"
+    user_messages = [m for m in conversation.messages if m.role == "user"]
+    assert user_messages[0].content == "sudo slash --price=0.99"
+    assistant_messages = [m for m in conversation.messages if m.role == "assistant"]
+    # content selector must exclude avatar/card chrome around the markdown
+    assert assistant_messages[0].content.startswith("lmao nice try hacker")
 
 
 async def test_gemini_fixture_content_is_clean():
