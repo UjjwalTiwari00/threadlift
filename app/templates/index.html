@@ -1,173 +1,357 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>ThreadLift</title>
-  <link rel="stylesheet" href="/static/style.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ThreadLift — Lift any AI chat into clean JSON</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0d1014;
+    --surface:#151a20;
+    --surface-2:#12161b;
+    --border:#22282f;
+    --border-soft:#1a1f26;
+    --text:#e8ebef;
+    --text-muted:#8b95a1;
+    --text-faint:#4a525e;
+    --accent:#c9f24b;
+    --accent-hover:#e2ff7a;
+    --error:#f2735f;
+    --error-bg:#1a1214;
+    --error-border:#3d2226;
+    --sans:'Space Grotesk',sans-serif;
+    --mono:'JetBrains Mono',monospace;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100vh;display:flex;flex-direction:column;}
+  a{color:var(--accent);text-decoration:none;}
+  a:hover{color:var(--accent-hover);text-decoration:underline;}
+  ::placeholder{color:var(--text-faint);}
+
+  /* Header */
+  header{display:flex;align-items:center;justify-content:space-between;padding:20px 40px;border-bottom:1px solid var(--border-soft);}
+  .brand{display:flex;align-items:center;gap:10px;}
+  .brand-mark{width:22px;height:22px;background:var(--accent);border-radius:4px;display:flex;align-items:center;justify-content:center;color:var(--bg);font-family:var(--mono);font-size:13px;font-weight:500;}
+  .brand-name{font-family:var(--mono);font-size:13px;letter-spacing:.12em;text-transform:uppercase;}
+  .header-meta{font-family:var(--mono);font-size:11px;color:var(--text-faint);letter-spacing:.08em;}
+
+  /* Main */
+  main{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:64px 24px;}
+  .stack{width:100%;max-width:640px;display:flex;flex-direction:column;gap:28px;}
+  h1{margin:0;font-size:52px;font-weight:600;letter-spacing:-.03em;line-height:1.05;}
+  .tagline{margin:0;font-size:16px;line-height:1.5;color:var(--text-muted);max-width:46ch;}
+
+  /* Input capsule */
+  .input-row{display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:6px 6px 6px 16px;transition:border-color .15s;}
+  .input-row:focus-within{border-color:var(--accent);}
+  .input-prefix{font-family:var(--mono);font-size:12px;color:var(--text-faint);}
+  .input-row input{flex:1;background:transparent;border:none;outline:none;color:var(--text);font-family:var(--mono);font-size:13px;padding:10px 0;}
+  .btn{background:var(--accent);color:var(--bg);border:none;border-radius:8px;padding:12px 22px;font-family:var(--sans);font-size:14px;font-weight:600;cursor:pointer;white-space:nowrap;}
+  .btn:hover:not(:disabled){background:var(--accent-hover);}
+  .btn:disabled{opacity:.55;cursor:wait;}
+
+  /* Platform chips */
+  .platforms{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:10px;}
+  .platforms-label{font-family:var(--mono);font-size:11px;color:var(--text-faint);letter-spacing:.06em;}
+  .chip{font-family:var(--mono);font-size:11px;color:var(--text-muted);background:var(--surface);border:1px solid var(--border);border-radius:999px;padding:4px 12px;}
+
+  /* Loading */
+  .loading-hint{font-family:var(--mono);font-size:12px;color:var(--text-faint);letter-spacing:.04em;}
+
+  /* Error */
+  .error-box{display:flex;flex-direction:column;gap:12px;background:var(--error-bg);border:1px solid var(--error-border);border-radius:12px;padding:16px 18px;}
+  .error-head{display:flex;align-items:baseline;gap:10px;}
+  .error-label{font-family:var(--mono);font-size:11px;font-weight:500;color:var(--error);letter-spacing:.1em;}
+  .error-msg{font-family:var(--mono);font-size:13px;color:#d9a099;}
+  .error-help{margin:0;font-size:13px;line-height:1.55;color:var(--text-muted);}
+
+  /* Disclosure */
+  details{border-top:1px solid var(--border-soft);padding-top:16px;}
+  summary{font-family:var(--mono);font-size:12px;color:var(--text-muted);cursor:pointer;letter-spacing:.04em;}
+  details p{margin:10px 0 0;font-size:13px;line-height:1.6;color:var(--text-muted);max-width:60ch;}
+  kbd{font-family:var(--mono);font-size:12px;background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:1px 6px;color:#b5bec9;}
+  .upload-trigger{color:var(--accent);cursor:pointer;text-decoration:underline;}
+  .upload-trigger:hover{color:var(--accent-hover);}
+
+  /* Results */
+  .results{display:flex;flex-direction:column;gap:16px;border-top:1px solid var(--border-soft);padding-top:24px;}
+  .results-head{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap;}
+  .results-head h2{margin:0 0 6px;font-size:22px;font-weight:600;letter-spacing:-.01em;}
+  .results-meta{font-family:var(--mono);font-size:11px;color:var(--text-faint);letter-spacing:.08em;}
+  .results-actions{display:flex;gap:8px;align-items:center;}
+  .seg{display:flex;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:3px;}
+  .seg-btn{background:transparent;color:#5f6b78;border:none;border-radius:6px;padding:7px 14px;font-family:var(--mono);font-size:11px;letter-spacing:.04em;cursor:pointer;}
+  .seg-btn.active{background:var(--border);color:var(--text);}
+  .btn-ghost{background:transparent;color:var(--accent);border:1px solid #2e3a1e;border-radius:8px;padding:7px 16px;font-family:var(--mono);font-size:11px;letter-spacing:.04em;cursor:pointer;}
+  .btn-ghost:hover{border-color:var(--accent);}
+
+  /* Message bubbles */
+  .messages{display:flex;flex-direction:column;gap:2px;}
+  .msg{display:flex;gap:16px;padding:16px 18px;border-radius:10px;}
+  .msg.user{background:var(--surface);}
+  .msg-role{font-family:var(--mono);font-size:10px;letter-spacing:.12em;color:#5f6b78;min-width:72px;padding-top:2px;text-transform:uppercase;}
+  .msg.user .msg-role{color:var(--accent);}
+  .msg-body{flex:1;min-width:0;}
+  .msg-body p{margin:0;font-size:14px;line-height:1.6;color:#c6cdd6;white-space:pre-wrap;word-break:break-word;}
+  .code-block{margin-top:10px;}
+  .code-lang{font-family:var(--mono);font-size:10px;color:var(--text-faint);letter-spacing:.08em;text-transform:uppercase;margin-bottom:4px;}
+  .code-block pre{margin:0;background:#0b0e13;border:1px solid var(--border-soft);border-radius:8px;padding:12px 14px;font-family:var(--mono);font-size:12px;line-height:1.6;color:#b5bec9;overflow-x:auto;}
+
+  /* JSON preview */
+  .preview{border:1px solid var(--border-soft);border-radius:12px;overflow:hidden;}
+  .preview-bar{display:flex;align-items:center;justify-content:space-between;background:var(--surface-2);padding:10px 16px;border-bottom:1px solid var(--border-soft);font-family:var(--mono);font-size:11px;color:var(--text-faint);letter-spacing:.08em;}
+  .preview pre{margin:0;padding:16px 18px;font-family:var(--mono);font-size:12.5px;line-height:1.7;color:var(--text-muted);background:#0f1318;overflow-x:auto;max-height:70vh;overflow-y:auto;}
+  .copy-btn{background:transparent;border:none;color:var(--text-muted);font-family:var(--mono);font-size:11px;cursor:pointer;letter-spacing:.04em;}
+  .copy-btn:hover{color:var(--accent);}
+
+  /* Footer */
+  footer{display:flex;align-items:center;justify-content:space-between;padding:18px 40px;border-top:1px solid var(--border-soft);font-family:var(--mono);font-size:11px;color:var(--text-faint);}
+
+  @media (max-width:600px){
+    h1{font-size:36px;}
+    header,footer{padding:16px 20px;}
+    main{padding:48px 16px;justify-content:flex-start;}
+    .input-row{flex-wrap:wrap;}
+    .btn{width:100%;}
+    .results-head{flex-direction:column;align-items:flex-start;}
+  }
+</style>
 </head>
 <body>
-<main class="container">
-  <h1>ThreadLift</h1>
-  <p class="tagline">
-    Lift your conversations out of any platform — paste a ChatGPT, Gemini,
-    Kimi, or DeepSeek share link and get clean, normalized JSON.
-  </p>
 
-  <form id="extract-form">
-    <input type="url" id="url" placeholder="https://chatgpt.com/share/..."
-           required autocomplete="off">
-    <button type="submit" id="submit-btn">Extract</button>
-  </form>
+<header>
+  <div class="brand">
+    <div class="brand-mark">↑</div>
+    <span class="brand-name">ThreadLift</span>
+  </div>
+  <span class="header-meta">v1.0 — free · no signup</span>
+</header>
 
-  <p class="upload-hint">
-    Link blocked by bot protection (common with Claude)? Open it in your
-    browser, save the page (<kbd>Ctrl+S</kbd> → "Webpage, Complete" or copy
-    the DOM from DevTools), then
-    <label class="upload-label" for="file">upload the HTML file</label>.
-    <input type="file" id="file" accept=".html,.htm,text/html" hidden>
-  </p>
+<main>
+  <div class="stack">
+    <div>
+      <h1>Lift any AI chat<br>into clean JSON.</h1>
+      <p class="tagline" style="margin-top:14px;">Paste a share link. Get a normalized, structured export of the whole conversation.</p>
+    </div>
 
-  <p id="status" hidden></p>
-
-  <section id="result" hidden>
-    <div class="result-header">
-      <h2 id="convo-title"></h2>
-      <div class="result-actions">
-        <button type="button" id="toggle-json">View JSON</button>
-        <button type="button" id="download-json">Download JSON</button>
+    <div>
+      <form id="extract-form">
+        <div class="input-row">
+          <span class="input-prefix">https://</span>
+          <input type="text" id="url" placeholder="chatgpt.com/share/…  ·  kimi.com/share/…  ·  deepseek" autocomplete="off">
+          <button type="submit" class="btn" id="submit-btn">Extract →</button>
+        </div>
+      </form>
+      <div class="platforms">
+        <span class="platforms-label">WORKS WITH</span>
+        <span class="chip">ChatGPT</span>
+        <span class="chip">Gemini</span>
+        <span class="chip">Kimi</span>
+        <span class="chip">DeepSeek</span>
       </div>
     </div>
-    <p class="meta" id="convo-meta"></p>
-    <div id="messages"></div>
-    <pre id="json-view" hidden></pre>
-  </section>
+
+    <p class="loading-hint" id="status-loading" hidden>Extracting… this can take up to 30 seconds.</p>
+
+    <div class="error-box" id="error-box" hidden>
+      <div class="error-head">
+        <span class="error-label">ERROR</span>
+        <span class="error-msg" id="error-msg"></span>
+      </div>
+      <p class="error-help">The link may be blocked by bot protection (common with Claude). Open it in your browser, save the page as <kbd>Webpage, Complete</kbd> — then <label class="upload-trigger" for="file">upload the HTML file</label> instead.</p>
+    </div>
+
+    <details>
+      <summary>Link blocked or not working?</summary>
+      <p>Some platforms block automated fetching. Open the share link in your browser, press <kbd>Ctrl+S</kbd> → "Webpage, Complete", or copy the DOM from DevTools — then <label class="upload-trigger" for="file">upload the HTML file</label> here.</p>
+    </details>
+    <input type="file" id="file" accept=".html,.htm,text/html" hidden>
+
+    <section class="results" id="result" hidden>
+      <div class="results-head">
+        <div>
+          <h2 id="convo-title"></h2>
+          <span class="results-meta" id="convo-meta"></span>
+        </div>
+        <div class="results-actions">
+          <div class="seg">
+            <button class="seg-btn active" data-view="messages">MESSAGES</button>
+            <button class="seg-btn" data-view="json">JSON</button>
+          </div>
+          <button class="btn-ghost" id="download-json">↓ JSON</button>
+        </div>
+      </div>
+
+      <div class="messages" id="view-messages"></div>
+
+      <div class="preview" id="view-json" hidden>
+        <div class="preview-bar">
+          <span id="json-filename">conversation.json</span>
+          <button class="copy-btn" id="copy-json">COPY</button>
+        </div>
+        <pre id="json-content"></pre>
+      </div>
+    </section>
+  </div>
 </main>
 
+<footer>
+  <span>Nothing is stored. Fetched server-side, never saved.</span>
+  <span>threadlift.app</span>
+</footer>
+
 <script>
-  const form = document.getElementById("extract-form");
-  const urlInput = document.getElementById("url");
-  const submitBtn = document.getElementById("submit-btn");
-  const statusEl = document.getElementById("status");
-  const resultEl = document.getElementById("result");
-  const titleEl = document.getElementById("convo-title");
-  const metaEl = document.getElementById("convo-meta");
-  const messagesEl = document.getElementById("messages");
-  const jsonView = document.getElementById("json-view");
-  const toggleJsonBtn = document.getElementById("toggle-json");
+  const form        = document.getElementById("extract-form");
+  const urlInput    = document.getElementById("url");
+  const submitBtn   = document.getElementById("submit-btn");
+  const loadingEl   = document.getElementById("status-loading");
+  const errorBox    = document.getElementById("error-box");
+  const errorMsg    = document.getElementById("error-msg");
+  const resultEl    = document.getElementById("result");
+  const titleEl     = document.getElementById("convo-title");
+  const metaEl      = document.getElementById("convo-meta");
+  const messagesEl  = document.getElementById("view-messages");
+  const jsonView    = document.getElementById("view-json");
+  const jsonContent = document.getElementById("json-content");
+  const jsonFilename= document.getElementById("json-filename");
   const downloadBtn = document.getElementById("download-json");
+  const copyBtn     = document.getElementById("copy-json");
 
   let conversation = null;
 
-  function setStatus(text, isError) {
-    statusEl.hidden = !text;
-    statusEl.textContent = text || "";
-    statusEl.className = isError ? "error" : "";
+  function showLoading(on) {
+    loadingEl.hidden = !on;
+    submitBtn.disabled = on;
+    submitBtn.textContent = on ? "Extracting…" : "Extract →";
+  }
+
+  function showError(msg) {
+    errorBox.hidden = !msg;
+    errorMsg.textContent = msg || "";
   }
 
   async function runExtraction(request) {
     resultEl.hidden = true;
-    submitBtn.disabled = true;
-    setStatus("Extracting… this can take up to 30 seconds.", false);
+    showError("");
+    showLoading(true);
     try {
-      const res = await fetch(request.path, request.options);
+      const res  = await fetch(request.path, request.options);
       const data = await res.json();
       if (!res.ok) {
-        const detail = typeof data.detail === "string"
-          ? data.detail
-          : "Extraction failed.";
+        const detail = typeof data.detail === "string" ? data.detail : "Extraction failed.";
         throw new Error(detail);
       }
       conversation = data;
       render(data);
-      setStatus("", false);
     } catch (err) {
-      setStatus(err.message, true);
+      showError(err.message);
     } finally {
-      submitBtn.disabled = false;
+      showLoading(false);
     }
   }
 
-  form.addEventListener("submit", (event) => {
-    event.preventDefault();
+  form.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const raw = urlInput.value.trim().replace(/^https?:\/\//i, "");
     runExtraction({
       path: "/extract",
       options: {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: urlInput.value }),
+        body: JSON.stringify({ url: "https://" + raw }),
       },
     });
   });
 
-  document.getElementById("file").addEventListener("change", (event) => {
-    const file = event.target.files[0];
+  document.getElementById("file").addEventListener("change", (e) => {
+    const file = e.target.files[0];
     if (!file) return;
-    const formData = new FormData();
-    formData.append("file", file);
-    runExtraction({
-      path: "/extract-html",
-      options: { method: "POST", body: formData },
-    });
-    event.target.value = "";
+    const fd = new FormData();
+    fd.append("file", file);
+    runExtraction({ path: "/extract-html", options: { method: "POST", body: fd } });
+    e.target.value = "";
   });
 
   function render(convo) {
     titleEl.textContent = convo.title || "(untitled conversation)";
-    metaEl.textContent =
-      convo.platform + " · " + convo.messages.length + " messages";
-    messagesEl.textContent = "";
+    metaEl.textContent  =
+      convo.platform.toUpperCase() + " · " + convo.messages.length + " MESSAGES";
+
+    messagesEl.innerHTML = "";
     for (const msg of convo.messages) {
-      const div = document.createElement("div");
-      div.className = "message " + msg.role;
+      const wrap = document.createElement("div");
+      wrap.className = "msg" + (msg.role === "user" ? " user" : "");
 
-      const badge = document.createElement("span");
-      badge.className = "role-badge";
-      badge.textContent = msg.role;
-      div.appendChild(badge);
+      const role = document.createElement("span");
+      role.className = "msg-role";
+      role.textContent = msg.role;
+      wrap.appendChild(role);
 
-      const body = document.createElement("p");
-      body.className = "content";
-      body.textContent = msg.content;
-      div.appendChild(body);
+      const body = document.createElement("div");
+      body.className = "msg-body";
+
+      const text = document.createElement("p");
+      text.textContent = msg.content;
+      body.appendChild(text);
 
       for (const block of msg.code_blocks) {
-        const label = document.createElement("div");
-        label.className = "code-lang";
-        label.textContent = block.language || "code";
-        div.appendChild(label);
-
+        const cb = document.createElement("div");
+        cb.className = "code-block";
+        if (block.language) {
+          const lang = document.createElement("div");
+          lang.className = "code-lang";
+          lang.textContent = block.language;
+          cb.appendChild(lang);
+        }
         const pre = document.createElement("pre");
         pre.textContent = block.content;
-        div.appendChild(pre);
+        cb.appendChild(pre);
+        body.appendChild(cb);
       }
-      messagesEl.appendChild(div);
+
+      wrap.appendChild(body);
+      messagesEl.appendChild(wrap);
     }
-    jsonView.textContent = JSON.stringify(convo, null, 2);
-    jsonView.hidden = true;
+
+    const json = JSON.stringify(convo, null, 2);
+    jsonContent.textContent = json;
+    const slug = (convo.title || "conversation").replace(/[^a-z0-9]+/gi, "-").toLowerCase();
+    jsonFilename.textContent = slug + ".json";
+
+    // Reset to messages view
+    document.querySelectorAll(".seg-btn").forEach(b => b.classList.toggle("active", b.dataset.view === "messages"));
     messagesEl.hidden = false;
-    toggleJsonBtn.textContent = "View JSON";
+    jsonView.hidden = true;
+
     resultEl.hidden = false;
+    resultEl.scrollIntoView({ behavior: "smooth", block: "nearest" });
   }
 
-  toggleJsonBtn.addEventListener("click", () => {
-    const showingJson = !jsonView.hidden;
-    jsonView.hidden = showingJson;
-    messagesEl.hidden = !showingJson;
-    toggleJsonBtn.textContent = showingJson ? "View JSON" : "View messages";
-  });
+  document.querySelectorAll(".seg-btn").forEach(btn => btn.addEventListener("click", () => {
+    document.querySelectorAll(".seg-btn").forEach(b => b.classList.toggle("active", b === btn));
+    messagesEl.hidden = btn.dataset.view !== "messages";
+    jsonView.hidden   = btn.dataset.view !== "json";
+  }));
 
   downloadBtn.addEventListener("click", () => {
     if (!conversation) return;
-    const blob = new Blob([JSON.stringify(conversation, null, 2)], {
-      type: "application/json",
-    });
+    const blob = new Blob([JSON.stringify(conversation, null, 2)], { type: "application/json" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
-    a.download = (conversation.title || "conversation")
-      .replace(/[^a-z0-9]+/gi, "-").toLowerCase() + ".json";
+    a.download = (conversation.title || "conversation").replace(/[^a-z0-9]+/gi, "-").toLowerCase() + ".json";
     a.click();
     URL.revokeObjectURL(a.href);
+  });
+
+  copyBtn.addEventListener("click", () => {
+    if (!jsonContent.textContent) return;
+    navigator.clipboard.writeText(jsonContent.textContent).then(() => {
+      const orig = copyBtn.textContent;
+      copyBtn.textContent = "COPIED";
+      setTimeout(() => { copyBtn.textContent = orig; }, 1500);
+    });
   });
 </script>
 </body>

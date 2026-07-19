@@ -10,7 +10,7 @@ from contextlib import asynccontextmanager
 
 from playwright.async_api import Browser, Playwright, async_playwright
 
-MAX_CONCURRENT_PAGES = 2
+MAX_CONCURRENT_PAGES = 1
 DEFAULT_TIMEOUT_MS = 30_000
 
 USER_AGENT = (
